@@ -1,0 +1,64 @@
+# Go関連
+# バイナリ、実行ファイル
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# テストバイナリ、ビルドファイル
+*.test
+*.out
+
+# 依存関係ディレクトリ（vendorを使用している場合）
+vendor/
+
+# Go workspaceファイル
+go.work
+
+# Nuxt関連
+# Nuxt dev/buildの出力
+.nuxt
+dist
+.output
+.data
+.nitro
+.cache
+
+# Node.js依存関係
+node_modules
+
+# ログ
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 環境変数ファイル
+.env
+.env.*
+!.env.example
+
+# その他
+# macOS
+.DS_Store
+
+# エディタ設定
+.vscode
+.idea
+
+# テンポラリファイル
+*.tmp
+*.bak
+*.swp
+
+# ビルドファイル
+*.build
+
+# デバッグファイル
+debug
+
+# テストカバレッジ
+*.out
+*.cover

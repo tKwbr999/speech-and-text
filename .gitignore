@@ -1,0 +1,34 @@
+# Go binary files
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go build artifacts
+/bin/
+/obj/
+
+# Dependency directories
+vendor/
+Gopkg.lock
+Gopkg.toml
+
+# Go modules
+go.sum
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.DS_Store
+
+# Environment variables
+.env
+
+# Test binary, build with `go test -c`
+*.test
+
+# Coverage files
+*.out
