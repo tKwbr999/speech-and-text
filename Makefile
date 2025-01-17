@@ -1,6 +1,7 @@
 export GOOGLE_APPLICATION_CREDENTIALS ?= $(shell cat .env | grep GOOGLE_APPLICATION_CREDENTIALS | cut -d'=' -f2)
 export PROJECT_ID ?= $(shell cat .env | grep PROJECT_ID | cut -d'=' -f2)
-export TF_VAR_project_id := data-sunlight-445604-q4
+export TF_VAR_project_id := $(PROJECT_ID)
+export TF_VAR_credentials_file := $(GOOGLE_APPLICATION_CREDENTIALS)
 
 .PHONY: terraform-init
 terraform-init:
@@ -11,13 +12,14 @@ terraform-init:
 build-push-image:
 	gcloud builds submit --tag gcr.io/$(PROJECT_ID)/speech-and-text .
 
-.PHONY: terraform-apply
-terraform-apply:
-	terraform -chdir=terraform apply -auto-approve -replace="google_cloud_run_v2_service.default"
+.PHONY: terraform-apply-cloud-run
+terraform-apply-cloud-run:
+	terraform -chdir=terraform apply -auto-approve -target=google_cloud_run_v2_service.default
 
-.PHONY: terraform-destroy
-terraform-destroy:
-	terraform -chdir=terraform destroy
+.PHONY: terraform-apply-secret-manager
+terraform-apply-secret-manager:
+	terraform -chdir=terraform apply -auto-approve -target=google_secret_manager_secret.cloud_run_sa_key
+
 
 .PHONY: image-list
 image-list:

@@ -21,3 +21,20 @@ services:
       - apparmor:unconfined
     cap_add:
       - SYS_PTRACE
+  app-test:
+    image: gcr.io/data-sunlight-445604-q4/speech-and-text:latest
+    container_name: app-test
+    env_file:
+      - .env
+    # environment:
+    #   ENV: local
+    #   GOOGLE_APPLICATION_CREDENTIALS: /key.json
+    # volumes:
+    #   - .:/app
+    #   - ${GOOGLE_APPLICATION_CREDENTIALS}:/key.json:ro
+    ports:
+      - "8081:80"
+    security_opt:
+      - apparmor:unconfined
+    cap_add:
+      - SYS_PTRACE

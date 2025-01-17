@@ -53,24 +53,20 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Printf("Error loading .env file: %v", err)
+	// ENVがローカルの場合だけ.envファイルを読み込む
+	if os.Getenv("ENV") == "local" {
+		err := godotenv.Load()
+		if err != nil {
+			log.Printf("Error loading .env file: %v", err)
+		}
 	}
 
-	// 環境変数の確認をスキップするかどうかのフラグ
-	isLocal := os.Getenv("ENV") == "local"
-
-	requiredEnvVars := []string{"PROJECT_ID", "BUCKET_NAME", "AUDIO_FILE_PATH", "GOOGLE_APPLICATION_CREDENTIALS"}
+	requiredEnvVars := []string{"PROJECT_ID"}
 	for _, envVar := range requiredEnvVars {
-		if isLocal {
-			if os.Getenv(envVar) == "" {
-				log.Fatalf("Error: %s environment variable is not set", envVar)
-			}
-			log.Printf("%s=%s", envVar, os.Getenv(envVar))
-		} else {
-			log.Printf("Skipping environment variable check in production for: %s", envVar)
+		if os.Getenv(envVar) == "" {
+			log.Fatalf("Error: %s environment variable is not set", envVar)
 		}
+		log.Printf("%s=%s", envVar, os.Getenv(envVar))
 	}
 
 	port := os.Getenv("PORT")
