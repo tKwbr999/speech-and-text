@@ -15,7 +15,6 @@ Gopkg.lock
 Gopkg.toml
 
 # Go modules
-go.sum
 
 # IDE and editor files
 .idea/
@@ -32,3 +31,9 @@ go.sum
 
 # Coverage files
 *.out
+
+# Terraform files
+terraform/.terraform
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl

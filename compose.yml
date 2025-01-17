@@ -1,0 +1,23 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile_local
+      args:
+        GOOGLE_APPLICATION_CREDENTIALS: $GOOGLE_APPLICATION_CREDENTIALS
+    container_name: app
+    env_file:
+      - .env
+    environment:
+      ENV: local
+      GOOGLE_APPLICATION_CREDENTIALS: /key.json
+    ports:
+      - "2345:2345"
+      - "8080:80"
+    volumes:
+      - .:/app
+      - ${GOOGLE_APPLICATION_CREDENTIALS}:/key.json:ro
+    security_opt:
+      - apparmor:unconfined
+    cap_add:
+      - SYS_PTRACE

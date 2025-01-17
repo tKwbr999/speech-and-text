@@ -1,0 +1,20 @@
+FROM golang:1.23-alpine
+
+RUN apk update && apk add --no-cache curl
+
+WORKDIR /app
+
+ENV GO111MODULE=on \
+    CGO_ENABLED=0 \
+    GOOS=linux \
+    AIR_VERSION=latest \
+    DLV_VERSION=master
+
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+
+RUN go install github.com/air-verse/air@${AIR_VERSION} && \
+    go install github.com/go-delve/delve/cmd/dlv@${DLV_VERSION}
+
+CMD ["air", "-c", ".air/.air.toml"]

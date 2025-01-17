@@ -58,17 +58,25 @@ func main() {
 		log.Printf("Error loading .env file: %v", err)
 	}
 
+	// 環境変数の確認をスキップするかどうかのフラグ
+	isLocal := os.Getenv("ENV") == "local"
+
 	requiredEnvVars := []string{"PROJECT_ID", "BUCKET_NAME", "AUDIO_FILE_PATH", "GOOGLE_APPLICATION_CREDENTIALS"}
 	for _, envVar := range requiredEnvVars {
-		if os.Getenv(envVar) == "" {
-			log.Fatalf("Error: %s environment variable is not set", envVar)
+		if isLocal {
+			if os.Getenv(envVar) == "" {
+				log.Fatalf("Error: %s environment variable is not set", envVar)
+			}
+			log.Printf("%s=%s", envVar, os.Getenv(envVar))
+		} else {
+			log.Printf("Skipping environment variable check in production for: %s", envVar)
 		}
-		log.Printf("%s=%s", envVar, os.Getenv(envVar))
 	}
 
 	port := os.Getenv("PORT")
+	log.Printf("PORT=%s", port)
 	if port == "" {
-		port = "8080"
+		port = "80"
 		log.Printf("Defaulting to port %s", port)
 	}
 
