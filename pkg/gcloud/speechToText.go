@@ -16,7 +16,7 @@ import (
 type SpeechToTextConfig struct {
 	ProjectID      string
 	BucketName     string
-	AudioFileName  string
+	AudioFilePath  string
 	LanguageCodes  []string
 	TimeoutSeconds int
 }
@@ -28,37 +28,31 @@ func NewSpeechToTextConfig() (*SpeechToTextConfig, error) {
 	audioFilePath := os.Getenv("AUDIO_FILE_PATH")
 
 	if projectID == "" || bucketName == "" || audioFilePath == "" {
-		return nil, fmt.Errorf("required environment variables are not set: PROJECT_ID, BUCKET_NAME, AUDIO_FILE_NAME")
+		return nil, fmt.Errorf("required environment variables are not set: PROJECT_ID, BUCKET_NAME, AUDIO_FILE_PATH")
 	}
 
 	return &SpeechToTextConfig{
 		ProjectID:      projectID,
 		BucketName:     bucketName,
-		AudioFileName:  audioFilePath, // デフォルトフォルダを使用
-		LanguageCodes:  []string{"id-ID", "cmn-Hans-CN", "yue-Hant-HK"},
-		TimeoutSeconds: 300, // デフォルトタイムアウト5分
+		AudioFilePath:  audioFilePath,
+		TimeoutSeconds: 300,
 	}, nil
 }
 
-// SpeechToTextV2 は音声をテキストに変換する
-func SpeechToTextV2() error {
-	config, err := NewSpeechToTextConfig()
-	if err != nil {
-		return fmt.Errorf("failed to create config: %v", err)
-	}
-
+// SpeechToTextV2 は音声をテキストに変換し、トランスクリプトを返す
+func SpeechToTextV2(config *SpeechToTextConfig) ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.TimeoutSeconds)*time.Second)
 	defer cancel()
 
 	client, err := createSpeechClient(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to create client: %v", err)
+		return nil, fmt.Errorf("failed to create client: %v", err)
 	}
 	defer client.Close()
 
 	req, err := createBatchRecognizeRequest(config)
 	if err != nil {
-		return fmt.Errorf("failed to create request: %v", err)
+		return nil, fmt.Errorf("failed to create request: %v", err)
 	}
 
 	return processBatchRecognition(ctx, client, req)
@@ -74,8 +68,9 @@ func createSpeechClient(ctx context.Context) (*speech.Client, error) {
 }
 
 func createBatchRecognizeRequest(config *SpeechToTextConfig) (*speechpb.BatchRecognizeRequest, error) {
-	fileUri := fmt.Sprintf("gs://%s/%s", config.BucketName, config.AudioFileName)
-	recognizer := fmt.Sprintf("projects/%s/locations/global/recognizers/_", config.ProjectID)
+	fileUri := fmt.Sprintf("gs://%s/%s", config.BucketName, config.AudioFilePath)
+	projectID := os.Getenv("PROJECT_ID")
+	recognizer := fmt.Sprintf("projects/%s/locations/global/recognizers/_", projectID)
 
 	return &speechpb.BatchRecognizeRequest{
 		Recognizer: recognizer,
@@ -106,45 +101,47 @@ func createBatchRecognizeRequest(config *SpeechToTextConfig) (*speechpb.BatchRec
 	}, nil
 }
 
-func processBatchRecognition(ctx context.Context, client *speech.Client, req *speechpb.BatchRecognizeRequest) error {
+func processBatchRecognition(ctx context.Context, client *speech.Client, req *speechpb.BatchRecognizeRequest) ([]string, error) {
 	op, err := client.BatchRecognize(ctx, req)
 	if err != nil {
-		return fmt.Errorf("failed to create BatchRecognize: %v", err)
+		return nil, fmt.Errorf("failed to create BatchRecognize: %v", err)
 	}
 
 	res, err := op.Wait(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to wait for BatchRecognize: %v", err)
+		return nil, fmt.Errorf("failed to wait for BatchRecognize: %v", err)
 	}
 
+	var transcripts []string
 	for _, result := range res.GetResults() {
-		if err := processResult(result); err != nil {
+		transcript, err := processResult(result)
+		if err != nil {
 			log.Printf("Warning: %v", err)
 			continue
 		}
+		transcripts = append(transcripts, transcript)
 	}
 
-	return nil
+	return transcripts, nil
 }
 
-func processResult(result *speechpb.BatchRecognizeFileResult) error {
+func processResult(result *speechpb.BatchRecognizeFileResult) (string, error) {
 	ir := result.GetInlineResult()
 	if ir == nil {
-		return fmt.Errorf("no inline result found")
+		return "", fmt.Errorf("no inline result found")
 	}
 
 	tr := ir.GetTranscript()
 	if tr == nil {
-		return fmt.Errorf("no transcript found")
+		return "", fmt.Errorf("no transcript found")
 	}
 
 	for _, res := range tr.GetResults() {
 		alternatives := res.GetAlternatives()
-		if len(alternatives) == 0 {
-			continue
+		if len(alternatives) > 0 {
+			return alternatives[0].GetTranscript(), nil
 		}
-		fmt.Printf("Transcript: %v\n", alternatives[0].GetTranscript())
 	}
 
-	return nil
+	return "", fmt.Errorf("no alternatives found in transcript")
 }
