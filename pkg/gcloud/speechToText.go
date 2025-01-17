@@ -9,7 +9,6 @@ import (
 
 	speech "cloud.google.com/go/speech/apiv2"
 	speechpb "cloud.google.com/go/speech/apiv2/speechpb"
-	"google.golang.org/api/option"
 )
 
 // SpeechToTextConfig は音声認識に必要な設定を保持する構造体
@@ -59,12 +58,7 @@ func SpeechToTextV2(config *SpeechToTextConfig) ([]string, error) {
 }
 
 func createSpeechClient(ctx context.Context) (*speech.Client, error) {
-	credentialsFile := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
-	if credentialsFile == "" {
-		return nil, fmt.Errorf("GOOGLE_APPLICATION_CREDENTIALS environment variable is not set")
-	}
-
-	return speech.NewClient(ctx, option.WithCredentialsFile(credentialsFile))
+	return speech.NewClient(ctx)
 }
 
 func createBatchRecognizeRequest(config *SpeechToTextConfig) (*speechpb.BatchRecognizeRequest, error) {
