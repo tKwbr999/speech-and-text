@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -34,7 +33,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	transcripts, err := gcloud.SpeechToTextV2(config)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Speech-to-Text processing failed: %v", err), http.StatusInternalServerError)
+		log.Fatalf("Speech-to-Text processing failed: %v", err)
+		http.Error(w, "Speech-to-Text processing failed", http.StatusInternalServerError)
 		return
 	}
 
