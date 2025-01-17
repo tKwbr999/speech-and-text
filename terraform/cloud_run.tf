@@ -41,8 +41,8 @@ resource "google_cloud_run_v2_service" "default" {
       env {
         name = "GOOGLE_APPLICATION_CREDENTIALS"
         value_source {
-          secret_key_ref {
-            secret  = "cloud-run-sa-key"
+          secret_key {
+            secret = google_secret_manager_secret.cloud_run_sa_key.name
             version = "latest"
           }
         }

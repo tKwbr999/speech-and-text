@@ -29,6 +29,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		AudioFilePath:  audioFilePath,
 		LanguageCodes:  strings.Split(languageCodes, ","),
 		TimeoutSeconds: 300,
+		Env:            os.Getenv("ENV"),
 	}
 
 	transcripts, err := gcloud.SpeechToTextV2(config)

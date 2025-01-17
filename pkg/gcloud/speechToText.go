@@ -9,6 +9,7 @@ import (
 
 	speech "cloud.google.com/go/speech/apiv2"
 	speechpb "cloud.google.com/go/speech/apiv2/speechpb"
+	"google.golang.org/api/option"
 )
 
 // SpeechToTextConfig は音声認識に必要な設定を保持する構造体
@@ -18,24 +19,7 @@ type SpeechToTextConfig struct {
 	AudioFilePath  string
 	LanguageCodes  []string
 	TimeoutSeconds int
-}
-
-// NewSpeechToTextConfig は環境変数から設定を読み込んで新しいConfigを作成する
-func NewSpeechToTextConfig() (*SpeechToTextConfig, error) {
-	projectID := os.Getenv("PROJECT_ID")
-	bucketName := os.Getenv("BUCKET_NAME")
-	audioFilePath := os.Getenv("AUDIO_FILE_PATH")
-
-	if projectID == "" || bucketName == "" || audioFilePath == "" {
-		return nil, fmt.Errorf("required environment variables are not set: PROJECT_ID, BUCKET_NAME, AUDIO_FILE_PATH")
-	}
-
-	return &SpeechToTextConfig{
-		ProjectID:      projectID,
-		BucketName:     bucketName,
-		AudioFilePath:  audioFilePath,
-		TimeoutSeconds: 300,
-	}, nil
+	Env            string
 }
 
 // SpeechToTextV2 は音声をテキストに変換し、トランスクリプトを返す
@@ -43,7 +27,13 @@ func SpeechToTextV2(config *SpeechToTextConfig) ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.TimeoutSeconds)*time.Second)
 	defer cancel()
 
-	client, err := createSpeechClient(ctx)
+	var client *speech.Client
+	var err error
+	if config.Env == "local" {
+		client, err = createSpeechClient(ctx)
+	} else {
+		client, err = createSpeechClientWithJSON(ctx)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client: %v", err)
 	}
@@ -59,6 +49,15 @@ func SpeechToTextV2(config *SpeechToTextConfig) ([]string, error) {
 
 func createSpeechClient(ctx context.Context) (*speech.Client, error) {
 	return speech.NewClient(ctx)
+}
+
+func createSpeechClientWithJSON(ctx context.Context) (*speech.Client, error) {
+	credentials := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	if credentials == "" {
+		return nil, fmt.Errorf("GOOGLE_APPLICATION_CREDENTIALS environment variable is not set")
+	}
+
+	return speech.NewClient(ctx, option.WithCredentialsJSON([]byte(credentials)))
 }
 
 func createBatchRecognizeRequest(config *SpeechToTextConfig) (*speechpb.BatchRecognizeRequest, error) {
