@@ -138,3 +138,61 @@ func processResult(result *speechpb.BatchRecognizeFileResult) (string, error) {
 
 	return "", fmt.Errorf("no alternatives found in transcript")
 }
+
+// SpeechToTextV2FromBytes はバイト配列の音声をテキストに変換し、トランスクリプトを返す
+func SpeechToTextV2FromBytes(config *SpeechToTextConfig, audioBytes []byte) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.TimeoutSeconds)*time.Second)
+	defer cancel()
+
+	var client *speech.Client
+	var err error
+	if config.Env == "local" {
+		client, err = createSpeechClient(ctx)
+	} else {
+		client, err = createSpeechClientWithJSON(ctx)
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to create client: %v", err)
+	}
+	defer client.Close()
+
+	req, err := createRecognizeRequestFromBytes(config, audioBytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %v", err)
+	}
+
+	resp, err := client.Recognize(ctx, req)
+	if err != nil {
+		return "", fmt.Errorf("failed to recognize: %v", err)
+	}
+
+	if len(resp.GetResults()) > 0 && len(resp.GetResults()[0].GetAlternatives()) > 0 {
+		return resp.GetResults()[0].GetAlternatives()[0].GetTranscript(), nil
+	}
+
+	return "", fmt.Errorf("no transcript found")
+}
+
+func createRecognizeRequestFromBytes(config *SpeechToTextConfig, audioBytes []byte) (*speechpb.RecognizeRequest, error) {
+	projectID := os.Getenv("PROJECT_ID")
+	recognizer := fmt.Sprintf("projects/%s/locations/global/recognizers/_", projectID)
+
+	return &speechpb.RecognizeRequest{
+		Recognizer: recognizer,
+		Config: &speechpb.RecognitionConfig{
+			DecodingConfig: &speechpb.RecognitionConfig_AutoDecodingConfig{
+				AutoDecodingConfig: &speechpb.AutoDetectDecodingConfig{},
+			},
+			Model:         "short",
+			LanguageCodes: config.LanguageCodes,
+			Features: &speechpb.RecognitionFeatures{
+				ProfanityFilter:       true,
+				EnableWordTimeOffsets: true,
+				EnableWordConfidence:  true,
+			},
+		},
+		AudioSource: &speechpb.RecognizeRequest_Content{
+			Content: audioBytes,
+		},
+	}, nil
+}
