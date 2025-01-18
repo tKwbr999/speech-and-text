@@ -31,6 +31,9 @@
       <button @click="saveRecording">
         録音データを保存
       </button>
+      <button @click="sendToText">
+        テキストにする
+      </button>
     </div>
   </div>
 </template>
@@ -174,6 +177,25 @@ export default {
       return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
     },
 
+    async sendToText() {
+      if (!this.audioBlob) return;
+
+      try {
+        const formData = new FormData();
+        formData.append('audio', this.audioBlob, 'recording.webm');
+
+        const response = await this.$axios.post('http://localhost:8080/api/speech-to-text', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+
+        console.log('Text from audio:', response.data);
+      } catch (error) {
+        console.error('Error sending audio to text:', error);
+        this.errorMessage = 'テキスト変換に失敗しました。';
+      }
+    },
     saveRecording() {
       if (!this.audioBlob) return;
 
